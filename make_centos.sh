@@ -5,24 +5,24 @@
 # Copyright (c) 2015-2020, Fabian Affolter <fabian@affolter-engineering.ch>
 # Released under the MIT license. See LICENSE file for details.
 #
-RELEASE=7.9.2009
-TYPE=Minimal
+RELEASE=8.2.2004
+TYPE=minimal
 CURRENT_TIME=`date +%F`
 CUSTOM_RPMS=rpms
 DVD_LAYOUT=unpacked
-DVD_TITLE='AE-CentOS-7'
-MENU_TITLE='AE CentOS 7'
-ISO=CentOS-${RELEASE:0:1}-x86_64-$TYPE-${RELEASE:4:6}.iso
+DVD_TITLE='AE-CentOS-8'
+MENU_TITLE='AE CentOS 8'
+ISO=CentOS-${RELEASE}-x86_64-$TYPE.iso
 ISO_DIR=iso
 ISO_FILENAME=AE-CentOS-$RELEASE-x86_64-$TYPE-$CURRENT_TIME.iso
-MIRROR=http://centos.mirror.snu.edu.in/centos/$RELEASE/isos/x86_64
+MIRROR=http://centos.hbcse.tifr.res.in/centos/$RELEASE/isos/x86_64
 MOUNT_POINT=centos-${RELEASE:0:1}
-
+REPODATA=BaseOS/repodata
 
 echo  "ISO - $ISO"
 echo  "ISO_FILENAME - $ISO_FILENAME"
 
-echo "http://centos.mirror.snu.edu.in/centos/7.9.2009/isos/x86_64/CentOS-7-x86_64-Minimal-2009.iso"
+echo "http://centos.mirror.snu.edu.in/centos/8.2.2004/isos/x86_64/CentOS-8.2.2004-x86_64-minimal.iso"
 echo "$MIRROR/$ISO"
 
 function fetch_iso() {
@@ -63,7 +63,7 @@ function clean_layout() {
 function create_layout() {
     if [ -d $DVD_LAYOUT ]; then
         echo "Layout $DVD_LAYOUT exists...delete repodata and isolinux only"
-        rm -rf $DVD_LAYOUT/repodata
+        rm -rf $DVD_LAYOUT/$REPODATA
         rm -rf $DVD_LAYOUT/isolinux
     fi
     echo "Creating $DVD_LAYOUT ..."
@@ -83,6 +83,11 @@ function create_layout() {
     sudo mount $ISO_DIR/$ISO $MOUNT_POINT
     echo "Populating layout (this will take a while) ..."
     rsync -Paz $MOUNT_POINT/ $DVD_LAYOUT
+
+    echo "D:****************************************************"
+    ls $DVD_LAYOUT
+    echo "D:****************************************************"
+
     sudo umount $MOUNT_POINT
 }
 
@@ -91,20 +96,21 @@ function fetch_custom_rpms(){
     yum install -y yum-utils
 
     echo "Downloading Extra repos"
-    yum install --downloadonly --enablerepo=extras epel-release --downloaddir=./rpms
+    yum install -y --downloadonly --enablerepo=extras epel-release --downloaddir=./rpms
 
     echo "Downloading iptables"
-    yum install --downloadonly iptables-services --downloaddir=./rpms
+    yum install -y --downloadonly iptables-services --downloaddir=./rpms
 
     echo "Adding config manager"
     yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
 
     echo "Downloading Docker"
-    yum install --downloadonly  docker-ce docker-ce-cli containerd.io --downloaddir=./rpms
+    yum install -y --downloadonly  docker-ce docker-ce-cli containerd.io --downloaddir=./rpms
 }
+
 function copy_rpms() {
     echo "Copying custom RPMS"
-    find $CUSTOM_RPMS -type f -exec cp {} $DVD_LAYOUT/Packages \;
+    find $CUSTOM_RPMS -type f -exec cp {} $DVD_LAYOUT/BaseOS/Packages \;
 }
 
 function copy_ks_cfg() {
@@ -123,7 +129,6 @@ function cleanup_layout() {
     find $DVD_LAYOUT -name TRANS.TBL -exec rm '{}' \;
     mv $DVD_LAYOUT/repodata/*-c${RELEASE:0:1}-x86_64-comps.xml $DVD_LAYOUT/repodata/comps.xml
     find $DVD_LAYOUT/repodata -type f ! -name 'comps.xml' -exec rm '{}' \;
-
 }
 
 function create_iso() {
@@ -139,7 +144,11 @@ function create_iso() {
         echo "createrepo is not installed. Installation starts now ..."
         sudo dnf -y install createrepo
     fi
+
+    echo "Creating Repo"
+
     /usr/bin/createrepo -g repodata/comps.xml $DVD_LAYOUT
+    echo "Creating Repo Completed"
     echo "Creating new ISO image ..."
     if [ ! -e /usr/bin/genisoimage ]; then
         echo "genisoimage is not installed. Installation starts now ..."
