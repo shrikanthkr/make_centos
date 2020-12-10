@@ -55,7 +55,7 @@ Credits
 -------
 
 This project was inspired by the work of:
-
+* https://github.com/fabaff/make_centos
 * https://github.com/joyent/mi-centos-7
 * https://ask.fedoraproject.org/en/question/46020/build-a-bootable-dvd-that-uses-kickstart/
 * http://www.redhat.com/archives/kickstart-list/2014-August/msg00010.html
