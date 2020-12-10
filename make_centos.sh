@@ -60,6 +60,23 @@ function clean_layout() {
     fi
 }
 
+function fetch_custom_rpms(){
+    echo "Downloading Yum Utils"
+    yum install -y --downloadonly yum-utils --downloaddir=./rpms
+
+    echo "Downloading Extra repos"
+    yum install -y --downloadonly --enablerepo=extras epel-release --downloaddir=./rpms
+
+    echo "Downloading iptables"
+    yum install -y --downloadonly iptables-services --downloaddir=./rpms
+
+    echo "Adding config manager"
+    yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+
+    echo "Downloading Docker"
+    yum install -y --downloadonly  docker-ce docker-ce-cli containerd.io --downloaddir=./rpms
+}
+
 function create_layout() {
     if [ -d $DVD_LAYOUT ]; then
         echo "Layout $DVD_LAYOUT exists...delete repodata and isolinux only"
@@ -116,6 +133,7 @@ function create_iso() {
     copy_ks_cfg
     modify_boot_menu
     copy_rpms
+    fetch_custom_rpms
     echo "Preparing new ISO image ..."
     discinfo=`head -1 $DVD_LAYOUT/.discinfo`
     if [ ! -e /usr/bin/createrepo ]; then
