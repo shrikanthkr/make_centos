@@ -7,7 +7,7 @@
 #
 RELEASE=7.9.2009
 TYPE=Minimal
-CURRENT_TIME=`date +%F`
+CURRENT_TIME=$(date +%F)
 CUSTOM_RPMS=rpms
 DVD_LAYOUT=unpacked
 DVD_TITLE='AE-CentOS-7'
@@ -18,170 +18,168 @@ ISO_FILENAME=AE-CentOS-$RELEASE-x86_64-$TYPE-$CURRENT_TIME.iso
 MIRROR=http://centos.mirror.snu.edu.in/centos/$RELEASE/isos/x86_64
 MOUNT_POINT=centos-${RELEASE:0:1}
 
-
-echo  "ISO - $ISO"
-echo  "ISO_FILENAME - $ISO_FILENAME"
+echo "ISO - $ISO"
+echo "ISO_FILENAME - $ISO_FILENAME"
 
 echo "http://centos.mirror.snu.edu.in/centos/7.9.2009/isos/x86_64/CentOS-7-x86_64-Minimal-2009.iso"
 echo "$MIRROR/$ISO"
 
 function fetch_iso() {
-    if [ ! -d $ISO_DIR ]; then
-        mkdir -p $ISO_DIR
-    fi
-    if [ ! -e /usr/bin/curl ]; then
-        echo "curl is not installed. Installation starts now ..."
-        sudo dnf -y install curl
-    fi
-    if [ ! -e $ISO_DIR/$ISO ]; then
-        echo "No local copy of $ISO. Fetching latest $ISO ... $MIRROR/$ISO"
-        curl -o $ISO_DIR/$ISO $MIRROR/$ISO
-    fi
-    check_iso
+  if [ ! -d $ISO_DIR ]; then
+    mkdir -p $ISO_DIR
+  fi
+  if [ ! -e /usr/bin/curl ]; then
+    echo "curl is not installed. Installation starts now ..."
+    sudo dnf -y install curl
+  fi
+  if [ ! -e $ISO_DIR/$ISO ]; then
+    echo "No local copy of $ISO. Fetching latest $ISO ... $MIRROR/$ISO"
+    curl -o $ISO_DIR/$ISO $MIRROR/$ISO
+  fi
+  check_iso
 }
 
 function check_iso() {
-    echo "Media check ..."
-    if [ ! -e /usr/bin/checkisomd5 ]; then
-        echo "checkisomd5 is not installed. Installation starts now ..."
-        sudo yum -y install isomd5sum
-    fi
-    if [ -e $ISO_DIR/$ISO ]; then
-        checkisomd5 $ISO_DIR/$ISO
-    else
-        echo "No media available to check"
-    fi
+  echo "Media check ..."
+  if [ ! -e /usr/bin/checkisomd5 ]; then
+    echo "checkisomd5 is not installed. Installation starts now ..."
+    sudo yum -y install isomd5sum
+  fi
+  if [ -e $ISO_DIR/$ISO ]; then
+    checkisomd5 $ISO_DIR/$ISO
+  else
+    echo "No media available to check"
+  fi
 }
 
 function clean_layout() {
-    echo "Cleaning ISO layout ..."
-    if [ -d $DVD_LAYOUT ]; then
-        rm -rf $DVD_LAYOUT
-    fi
+  echo "Cleaning ISO layout ..."
+  if [ -d $DVD_LAYOUT ]; then
+    rm -rf $DVD_LAYOUT
+  fi
 }
 
-function fetch_custom_rpms(){
-    echo "Downloading Nano"
-    yum install -y --downloadonly nano --downloaddir=$CUSTOM_RPMS
+function fetch_custom_rpms() {
+  echo "Downloading Nano"
+  yum install -y --downloadonly nano --downloaddir=$CUSTOM_RPMS
 
-    repotrack --download_path=$CUSTOM_RPMS git wget vim-enhanced  net-tools sqlite-devel psmisc ncurses-devel libtermcap-devel \
-newt-devel libxml2-devel libtiff-devel gtk2-devel libtool libuuid-devel subversion kernel-devel \
-kernel-devel-$(uname -r) crontabs cronie-anacron
+  repotrack --download_path=$CUSTOM_RPMS git wget vim-enhanced net-tools sqlite-devel psmisc ncurses-devel libtermcap-devel \
+    newt-devel libxml2-devel libtiff-devel gtk2-devel libtool libuuid-devel subversion kernel-devel \
+    kernel-devel-$(uname -r) crontabs cronie-anacron
 }
 
 function create_layout() {
-    if [ -d $DVD_LAYOUT ]; then
-        echo "Layout $DVD_LAYOUT exists...delete repodata, isolinux and custom rpms only"
-        rm -rf $DVD_LAYOUT/repodata
-        rm -rf $DVD_LAYOUT/isolinux
-        rm -rf $CUSTOM_RPMS
-    fi
-    echo "Creating $DVD_LAYOUT ..."
-    mkdir -p $DVD_LAYOUT
+  if [ -d $DVD_LAYOUT ]; then
+    echo "Layout $DVD_LAYOUT exists...delete repodata, isolinux and custom rpms only"
+    rm -rf $DVD_LAYOUT/repodata
+    rm -rf $DVD_LAYOUT/isolinux
+    rm -rf $CUSTOM_RPMS
+  fi
+  echo "Creating $DVD_LAYOUT ..."
+  mkdir -p $DVD_LAYOUT
 
-    echo "Creating $CUSTOM_RPMS ..."
-    mkdir -p $CUSTOM_RPMS
+  echo "Creating $CUSTOM_RPMS ..."
+  mkdir -p $CUSTOM_RPMS
 
-    # Check if $MOUNT_POINT is already mounted
-    if [ $(grep $MOUNT_POINT /proc/mounts) ]; then
-      echo "Unmounting $MOUNT_POINT from previous build ..."
-        sudo umount $MOUNT_POINT
-    fi
-
-    echo "Mounting $ISO to $MOUNT_POINT"
-    if [ ! -d $MOUNT_POINT ]; then
-        echo "Creating $MOUNT_POINT..."
-        mkdir -p $MOUNT_POINT
-    fi
-    sudo mount $ISO_DIR/$ISO $MOUNT_POINT
-    echo "Populating layout (this will take a while) ..."
-    rsync -Paz $MOUNT_POINT/ $DVD_LAYOUT
+  # Check if $MOUNT_POINT is already mounted
+  if [ $(grep $MOUNT_POINT /proc/mounts) ]; then
+    echo "Unmounting $MOUNT_POINT from previous build ..."
     sudo umount $MOUNT_POINT
+  fi
+
+  echo "Mounting $ISO to $MOUNT_POINT"
+  if [ ! -d $MOUNT_POINT ]; then
+    echo "Creating $MOUNT_POINT..."
+    mkdir -p $MOUNT_POINT
+  fi
+  sudo mount $ISO_DIR/$ISO $MOUNT_POINT
+  echo "Populating layout (this will take a while) ..."
+  rsync -Paz $MOUNT_POINT/ $DVD_LAYOUT
+  sudo umount $MOUNT_POINT
 }
 
 function copy_rpms() {
-    echo "Copying custom RPMS"
-    find $CUSTOM_RPMS -type f -exec cp --verbose {} $DVD_LAYOUT/Packages \;
+  echo "Copying custom RPMS"
+  find $CUSTOM_RPMS -type f -exec cp --verbose {} $DVD_LAYOUT/Packages \;
 }
 
 function copy_ks_cfg() {
-    echo "Copying kickstart file(s) ..."
-    cp kickstart/*.cfg $DVD_LAYOUT/
+  echo "Copying kickstart file(s) ..."
+  cp kickstart/*.cfg $DVD_LAYOUT/
 }
 
 function modify_boot_menu() {
-    echo "Modifying boot menu ..."
-    cp config/isolinux.cfg $DVD_LAYOUT/isolinux/
-    sed -i "s|menu title CentOS 7|menu title $MENU_TITLE|g" $DVD_LAYOUT/isolinux/isolinux.cfg
+  echo "Modifying boot menu ..."
+  cp config/isolinux.cfg $DVD_LAYOUT/isolinux/
+  sed -i "s|menu title CentOS 7|menu title $MENU_TITLE|g" $DVD_LAYOUT/isolinux/isolinux.cfg
 }
 
 function cleanup_layout() {
-    echo "Cleaning up $DVD_LAYOUT ..."
-    find $DVD_LAYOUT -name TRANS.TBL -exec rm '{}' \;
-    mv $DVD_LAYOUT/repodata/*-c${RELEASE:0:1}-x86_64-comps.xml $DVD_LAYOUT/repodata/comps.xml
-    find $DVD_LAYOUT/repodata -type f ! -name 'comps.xml' -exec rm '{}' \;
+  echo "Cleaning up $DVD_LAYOUT ..."
+  find $DVD_LAYOUT -name TRANS.TBL -exec rm '{}' \;
+  mv $DVD_LAYOUT/repodata/*-c${RELEASE:0:1}-x86_64-comps.xml $DVD_LAYOUT/repodata/comps.xml
+  find $DVD_LAYOUT/repodata -type f ! -name 'comps.xml' -exec rm '{}' \;
 
 }
 
 function create_iso() {
-    create_layout
-    cleanup_layout
-    copy_ks_cfg
-    modify_boot_menu
-    fetch_custom_rpms
-    copy_rpms
-    echo "Preparing new ISO image ..."
+  create_layout
+  cleanup_layout
+  copy_ks_cfg
+  modify_boot_menu
+  fetch_custom_rpms
+  copy_rpms
+  echo "Preparing new ISO image ..."
 
-    discinfo=`head -1 $DVD_LAYOUT/.discinfo`
+  discinfo=$(head -1 $DVD_LAYOUT/.discinfo)
 
-    if [ ! -e /usr/bin/createrepo ]; then
-        echo "createrepo is not installed. Installation starts now ..."
-        sudo dnf -y install createrepo
-    fi
+  if [ ! -e /usr/bin/createrepo ]; then
+    echo "createrepo is not installed. Installation starts now ..."
+    sudo dnf -y install createrepo
+  fi
 
-    echo "Doing Crate repo for custom packages"
-    /usr/bin/createrepo -p -g repodata/comps.xml $DVD_LAYOUT
+  echo "Doing Crate repo for custom packages"
+  /usr/bin/createrepo -p -g repodata/comps.xml $DVD_LAYOUT
 
-    echo "Creating new ISO image ..."
-    if [ ! -e /usr/bin/genisoimage ]; then
-        echo "genisoimage is not installed. Installation starts now ..."
-        sudo dnf -y install genisoimage
-    fi
-    /usr/bin/genisoimage -U -r -v -T -J \
-        -joliet-long \
-        -V "$DVD_TITLE" \
-        -volset "$DVD_TITLE" \
-        -A "$DVD_TITLE  - $CURRENT_TIME" \
-        -p "Fabian Affolter <fabian.affolter@audius.de>" \
-        -input-charset utf-8 \
-        -b isolinux/isolinux.bin \
-        -c isolinux/boot.cat \
-        -no-emul-boot \
-        -boot-load-size 4 \
-        -boot-info-table \
-        -eltorito-alt-boot \
-        -e images/efiboot.img \
-        -no-emul-boot \
-        -x "lost+found" \
-        -o $ISO_FILENAME \
-        $DVD_LAYOUT
-    echo "Finising new ISO image ..."
-    if [ ! -e /usr/bin/implantisomd5 ]; then
-        echo "implantisomd5 is not available. Installation starts now ..."
-        sudo dnf -y install isomd5sum
-    fi
-    /usr/bin/implantisomd5 $ISO_FILENAME
-    if [ ! -e /usr/bin/isohybrid ]; then
-        echo "isohybrid is not available. Installation starts now ..."
-        sudo dnf -y install syslinux
-    fi
-    /usr/bin/isohybrid $ISO_FILENAME
-    echo "New ISO image '$ISO_FILENAME' is ready"
+  echo "Creating new ISO image ..."
+  if [ ! -e /usr/bin/genisoimage ]; then
+    echo "genisoimage is not installed. Installation starts now ..."
+    sudo dnf -y install genisoimage
+  fi
+  /usr/bin/genisoimage -U -r -v -T -J \
+    -joliet-long \
+    -V "$DVD_TITLE" \
+    -volset "$DVD_TITLE" \
+    -A "$DVD_TITLE  - $CURRENT_TIME" \
+    -p "Fabian Affolter <fabian.affolter@audius.de>" \
+    -input-charset utf-8 \
+    -b isolinux/isolinux.bin \
+    -c isolinux/boot.cat \
+    -no-emul-boot \
+    -boot-load-size 4 \
+    -boot-info-table \
+    -eltorito-alt-boot \
+    -e images/efiboot.img \
+    -no-emul-boot \
+    -x "lost+found" \
+    -o $ISO_FILENAME \
+    $DVD_LAYOUT
+  echo "Finising new ISO image ..."
+  if [ ! -e /usr/bin/implantisomd5 ]; then
+    echo "implantisomd5 is not available. Installation starts now ..."
+    sudo dnf -y install isomd5sum
+  fi
+  /usr/bin/implantisomd5 $ISO_FILENAME
+  if [ ! -e /usr/bin/isohybrid ]; then
+    echo "isohybrid is not available. Installation starts now ..."
+    sudo dnf -y install syslinux
+  fi
+  /usr/bin/isohybrid $ISO_FILENAME
+  echo "New ISO image '$ISO_FILENAME' is ready"
 }
 
-
 usage() {
-    cat << EOF
+  cat <<EOF
 usage:
         $0 [options] command
 options:
@@ -194,43 +192,43 @@ commands:
   create          Create the new ISO image
 
 EOF
-    exit 1
+  exit 1
 }
 
 while getopts ":h" opt; do
-    case ${opt} in
-        h )
-            usage
-            exit 0
-            ;;
-        \? )
-            echo "Invalid Option: -$OPTARG" 1>&2
-            exit 1
-            ;;
-    esac
+  case ${opt} in
+  h)
+    usage
+    exit 0
+    ;;
+  \?)
+    echo "Invalid Option: -$OPTARG" 1>&2
+    exit 1
+    ;;
+  esac
 done
-shift $((OPTIND -1))
+shift $((OPTIND - 1))
 
 subcommand=$1
 if [ ! $subcommand ]; then
-    usage
+  usage
 fi
 shift
 case "$subcommand" in
-    clean )
-        clean_layout
-        ;;
-    fetch )
-        fetch_iso
-        ;;
-    check )
-        check_iso
-        ;;
-    create )
-        create_iso
-        ;;
-    * )
-        echo "Invalid subcommand: $subcommand" 1>&2
-        exit 1
-        ;;
+clean)
+  clean_layout
+  ;;
+fetch)
+  fetch_iso
+  ;;
+check)
+  check_iso
+  ;;
+create)
+  create_iso
+  ;;
+*)
+  echo "Invalid subcommand: $subcommand" 1>&2
+  exit 1
+  ;;
 esac
