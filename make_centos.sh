@@ -61,30 +61,26 @@ function clean_layout() {
 }
 
 function fetch_custom_rpms(){
-    echo "Downloading Yum Utils"
-    yum install -y --downloadonly yum-utils --downloaddir=./rpms
+    echo "Downloading Nano"
+    yum install -y --downloadonly nano --downloaddir=$CUSTOM_RPMS
 
-    echo "Downloading Extra repos"
-    yum install -y --downloadonly --enablerepo=extras epel-release --downloaddir=./rpms
-
-    echo "Downloading iptables"
-    yum install -y --downloadonly iptables-services --downloaddir=./rpms
-
-    echo "Adding config manager"
-    yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
-
-    echo "Downloading Docker"
-    yum install -y --downloadonly  docker-ce docker-ce-cli containerd.io --downloaddir=./rpms
+    repotrack --download_path=$CUSTOM_RPMS git wget vim-enhanced  net-tools sqlite-devel psmisc ncurses-devel libtermcap-devel \
+newt-devel libxml2-devel libtiff-devel gtk2-devel libtool libuuid-devel subversion kernel-devel \
+kernel-devel-$(uname -r) crontabs cronie-anacron
 }
 
 function create_layout() {
     if [ -d $DVD_LAYOUT ]; then
-        echo "Layout $DVD_LAYOUT exists...delete repodata and isolinux only"
+        echo "Layout $DVD_LAYOUT exists...delete repodata, isolinux and custom rpms only"
         rm -rf $DVD_LAYOUT/repodata
         rm -rf $DVD_LAYOUT/isolinux
+        rm -rf $CUSTOM_RPMS
     fi
     echo "Creating $DVD_LAYOUT ..."
     mkdir -p $DVD_LAYOUT
+
+    echo "Creating $CUSTOM_RPMS ..."
+    mkdir -p $CUSTOM_RPMS
 
     # Check if $MOUNT_POINT is already mounted
     if [ $(grep $MOUNT_POINT /proc/mounts) ]; then
@@ -105,7 +101,7 @@ function create_layout() {
 
 function copy_rpms() {
     echo "Copying custom RPMS"
-    find $CUSTOM_RPMS -type f -exec cp {} $DVD_LAYOUT/Packages \;
+    find $CUSTOM_RPMS -type f -exec cp --verbose {} $DVD_LAYOUT/Packages \;
 }
 
 function copy_ks_cfg() {
@@ -132,15 +128,20 @@ function create_iso() {
     cleanup_layout
     copy_ks_cfg
     modify_boot_menu
-    copy_rpms
     fetch_custom_rpms
+    copy_rpms
     echo "Preparing new ISO image ..."
+
     discinfo=`head -1 $DVD_LAYOUT/.discinfo`
+
     if [ ! -e /usr/bin/createrepo ]; then
         echo "createrepo is not installed. Installation starts now ..."
         sudo dnf -y install createrepo
     fi
-    /usr/bin/createrepo -g repodata/comps.xml $DVD_LAYOUT
+
+    echo "Doing Crate repo for custom packages"
+    /usr/bin/createrepo -p -g repodata/comps.xml $DVD_LAYOUT
+
     echo "Creating new ISO image ..."
     if [ ! -e /usr/bin/genisoimage ]; then
         echo "genisoimage is not installed. Installation starts now ..."
