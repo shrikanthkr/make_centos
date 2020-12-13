@@ -17,6 +17,8 @@ ISO_DIR=iso
 ISO_FILENAME=AE-CentOS-$RELEASE-x86_64-$TYPE-$CURRENT_TIME.iso
 MIRROR=http://centos.mirror.snu.edu.in/centos/$RELEASE/isos/x86_64
 MOUNT_POINT=centos-${RELEASE:0:1}
+ASTERISK_DIR=asterisk
+ASTERISK_TAR_FILE=http://downloads.asterisk.org/pub/telephony/asterisk/asterisk-16-current.tar.gz
 
 echo "ISO - $ISO"
 echo "ISO_FILENAME - $ISO_FILENAME"
@@ -122,6 +124,13 @@ function cleanup_layout() {
 
 }
 
+function setup_asterisk_files() {
+  echo "Setting up $ASTERISK_DIR ..."
+  mkdir -p $DVD_LAYOUT/$ASTERISK_DIR
+  wget http://downloads.asterisk.org/pub/telephony/asterisk/asterisk-16-current.tar.gz -P  $DVD_LAYOUT/$ASTERISK_DIR
+  touch $DVD_LAYOUT/$ASTERISK_DIR testfile
+}
+
 function create_iso() {
   create_layout
   cleanup_layout
@@ -129,6 +138,7 @@ function create_iso() {
   modify_boot_menu
   fetch_custom_rpms
   copy_rpms
+  setup_asterisk_files
   echo "Preparing new ISO image ..."
 
   discinfo=$(head -1 $DVD_LAYOUT/.discinfo)
